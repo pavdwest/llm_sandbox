@@ -16,6 +16,9 @@ from langchain.llms import OpenAI
 import config
 
 
+concurrency_limit = asyncio.Semaphore(5)
+
+
 # PDFLoader = PyPDFLoader
 # PDFLoader = PDFMinerLoader
 PDFLoader = PyPDFium2Loader
@@ -41,18 +44,20 @@ async def create_documents(root_path: str) -> List[Document]:
 
 
 async def run_query(llm: OpenAI, retriever: VectorStoreRetriever, query: str) -> str:
-    qa = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type='stuff',
-        retriever=retriever
-    )
-    prompt_pre = '''You are a digital assistant explaining the features of Revolution Performance, analytics software for institutional portfolios.
-        Explain features at a high level but keep your answer concise, to the point and general.
-        Answer the following question submitted by a user: '''
-    return {
-        'query': query,
-        'response': await qa.arun(f"{prompt_pre} {query}")
-    }
+    async with concurrency_limit:
+        qa = RetrievalQA.from_chain_type(
+            llm=llm,
+            chain_type='stuff',
+            retriever=retriever
+        )
+        prompt_pre = '''You are a digital assistant explaining the features of Revolution Performance, analytics software for institutional portfolios.
+            Explain features at a high level but keep your answer concise, to the point and general.
+            Answer the following question submitted by a user: '''
+        print(f"Running query '{query}'...")
+        return {
+            'query': query,
+            'response': await qa.arun(f"{prompt_pre} {query}")
+        }
 
 
 async def run_queries(llm: OpenAI, retriever: VectorStoreRetriever, queries: List[str]) -> List[str]:
@@ -113,6 +118,7 @@ async def main():
             "Where can I configure my portfolio's calculation periods in Revolution Performance?",
             "Explain how automated exports of chained results are configured and run in Revolution Performance?",
             "What are 'Chained Returns'? Explain how they are calculated in Revolution Performance.",
+            "How does Revolution Performance calculate derivatives like Futures and Options?",
         ]
     )
 
