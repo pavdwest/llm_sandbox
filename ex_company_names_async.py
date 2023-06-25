@@ -19,7 +19,7 @@ async def get_company_name(llm: OpenAI, product: str) -> str:
     }
 
 
-async def get_company_names(products: List[str]):
+async def get_company_names(products: List[str]) -> List[str]:
     llm = OpenAI(
         openai_api_key=config.OPENAI_API_KEY,
         temperature=0.9,
