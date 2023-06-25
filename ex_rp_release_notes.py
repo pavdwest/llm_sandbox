@@ -1,8 +1,8 @@
 import glob
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.document_loaders import PDFMinerLoader
 import json
 
+from langchain.indexes import VectorstoreIndexCreator
+from langchain.document_loaders import PDFMinerLoader
 from langchain.llms import OpenAI
 
 import config

@@ -1,12 +1,12 @@
 import asyncio
 from pathlib import Path
 from typing import List
-from langchain.schema import Document
-from langchain.vectorstores.base import VectorStoreRetriever
-from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader, PDFMinerPDFasHTMLLoader, PDFPlumberLoader
 import glob
 import json
 
+from langchain.schema import Document
+from langchain.vectorstores.base import VectorStoreRetriever
+from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader, PDFMinerPDFasHTMLLoader, PDFPlumberLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
