@@ -2,7 +2,8 @@ import asyncio
 from pathlib import Path
 from typing import List
 from langchain.schema import Document
-from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader
+from langchain.vectorstores.base import VectorStoreRetriever
+from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader, PDFMinerPDFasHTMLLoader, PDFPlumberLoader
 import glob
 import json
 
@@ -15,7 +16,11 @@ from langchain.llms import OpenAI
 import config
 
 
+# PDFLoader = PyPDFLoader
+# PDFLoader = PDFMinerLoader
 PDFLoader = PyPDFium2Loader
+# PDFLoader = PDFMinerPDFasHTMLLoader
+# PDFLoader = PDFPlumberLoader
 
 
 async def create_loader(path: str) -> List[Document]:
@@ -30,14 +35,19 @@ async def create_loader(path: str) -> List[Document]:
 
 
 async def create_documents(root_path: str) -> List[Document]:
-    tasks = [create_loader(path) for path in glob.glob(f"{root_path}/*.pdf")]
+    tasks = [create_loader(path) for path in glob.glob(f"{root_path}/**/*.pdf", recursive=True)]
     loaders = await asyncio.gather(*tasks)
     return [document for loader in loaders for document in loader]
 
 
-async def run_query(qa: RetrievalQA, query: str) -> str:
-    prompt_pre = '''You are a digital assistant explaining the features of analytics software for institutional portfolios.
-        The custom information included in this query is the monthly release notes of the product over the last few years.
+async def run_query(llm: OpenAI, retriever: VectorStoreRetriever, query: str) -> str:
+    qa = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type='stuff',
+        retriever=retriever
+    )
+    prompt_pre = '''You are a digital assistant explaining the features of Revolution Performance, analytics software for institutional portfolios.
+        Explain features at a high level but keep your answer concise, to the point and general.
         Answer the following question submitted by a user: '''
     return {
         'query': query,
@@ -45,18 +55,25 @@ async def run_query(qa: RetrievalQA, query: str) -> str:
     }
 
 
-async def run_queries(qa: RetrievalQA, queries: List[str]) -> List[str]:
-    tasks = [run_query(qa, q) for q in queries]
+async def run_queries(llm: OpenAI, retriever: VectorStoreRetriever, queries: List[str]) -> List[str]:
+    tasks = [run_query(llm, retriever, q) for q in queries]
     return await asyncio.gather(*tasks)
 
 
 async def main():
+    doc_path = 'data/rp_docs'
+
+    # Checking if source data is present
+    if not Path(doc_path).exists():
+        print(f"Expected release notes pdfs to exist in '{doc_path}'. Exiting.")
+        exit(1)
+
     db = None
     embedding = OpenAIEmbeddings()
 
     print('Loading data...')
     if not Path(config.RP_DOCDB).exists():
-        documents = await create_documents(root_path='data/rp_release_notes_all')
+        documents = await create_documents(root_path=doc_path)
 
         print('Converting text data into embeddings & VectorStore db...')
         db = Chroma().from_documents(
@@ -73,24 +90,25 @@ async def main():
 
     print('Building retriever...')
     retriever = db.as_retriever()
-    qa = RetrievalQA.from_chain_type(
-        llm=OpenAI(
-            openai_api_key=config.OPENAI_API_KEY,
-            temperature=0.01,
-        ),
-        chain_type='stuff',
-        retriever=retriever
+    llm = OpenAI(
+        openai_api_key=config.OPENAI_API_KEY,
+        temperature=0.0,
     )
 
     print('Running queries...')
     res = await run_queries(
-        qa,
+        llm,
+        retriever,
         [
             'Who authored the Revolution Performance Release notes?',
+            "Explain 'Aggregate Cash per Currency' setting in Revolution Performance." ,
             'Can Revolution Performance calculate returns from NAVs or GAVs?',
             'Can Revolution Performance calculate time-weighted and money-weighted returns from total asset values and transactions?',
-            'What are Abnormal Price Returns and how are they handled in Revolution Performance?',
-            "What does the 'Closed Day Method' in Revolution Performance do?",
+            'Explain Price and Trading Returns in Revolution Performance.',
+            'What returns can Revolution Performance calculate?',
+            'Can Revolution Performance calculate Turnover Ratios?',
+            "Explain what the 'Closed Day Method' is and what it does in Revolution Performance",
+            "What are Abnormal Returns and why are they useful in Revolution Performance?",
             "What does the setting 'Chained Results Calendar' in Revolution Performance do?",
             "Where can I configure my portfolio's calculation periods in Revolution Performance?",
             "Explain how automated exports of chained results are configured and run in Revolution Performance?",
@@ -98,6 +116,6 @@ async def main():
         ]
     )
 
-    print(json.dumps(res))
+    print(json.dumps(res, indent=2))
 
 asyncio.run(main())
