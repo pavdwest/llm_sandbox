@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 from typing import List
 from langchain.schema import Document
-from langchain.document_loaders import PyPDFLoader, PDFMinerLoader
+from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader
 import glob
 import json
 
@@ -15,10 +15,13 @@ from langchain.llms import OpenAI
 import config
 
 
+PDFLoader = PyPDFium2Loader
+
+
 async def create_loader(path: str) -> List[Document]:
     # Async interface not available yet unfortunately...
     print(f"Loading {path}...")
-    return PyPDFLoader(path).load_and_split(
+    return PDFLoader(path).load_and_split(
         text_splitter=CharacterTextSplitter(
             chunk_size=4000,
             chunk_overlap=0
@@ -33,12 +36,9 @@ async def create_documents(root_path: str) -> List[Document]:
 
 
 async def run_query(qa: RetrievalQA, query: str) -> str:
-    prompt_pre = '''You are a digital assistant assisting users in understanding
-        features of piece of analytics software that calculates performance results for institutional portfolios.
+    prompt_pre = '''You are a digital assistant explaining the features of analytics software for institutional portfolios.
         The custom information included in this query is the monthly release notes of the product over the last few years.
-        Keep your answers short and try to generalise the response if possible.
-        Based on the above, answer the following question submitted by a user:
-        '''
+        Answer the following question submitted by a user: '''
     return {
         'query': query,
         'response': await qa.arun(f"{prompt_pre} {query}")
@@ -76,7 +76,7 @@ async def main():
     qa = RetrievalQA.from_chain_type(
         llm=OpenAI(
             openai_api_key=config.OPENAI_API_KEY,
-            # temperature=0.01,
+            temperature=0.01,
         ),
         chain_type='stuff',
         retriever=retriever

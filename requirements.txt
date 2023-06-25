@@ -6,3 +6,4 @@ chromadb
 tiktoken
 pdfminer.six
 pypdf
+pypdfium2
