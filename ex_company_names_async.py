@@ -13,7 +13,10 @@ async def get_company_name(llm: OpenAI, product: str) -> str:
         "What would be a good company name for a company that makes {product}?"
     )
     chain = LLMChain(llm=llm, prompt=prompt)
-    return await chain.arun(product)
+    return {
+        'Product': product,
+        'Suggested Company Name': await chain.arun(product),
+    }
 
 
 async def get_company_names(products: List[str]):
@@ -33,6 +36,8 @@ async def main():
         'cat toys',
         'novelty towels',
     ]
+    print('Generating some creative company names for companies that produce the following products:')
+    print(products)
     res = await get_company_names(products)
     [print(r) for r in res]
 
