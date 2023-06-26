@@ -1,12 +1,22 @@
+import os
 import asyncio
 from pathlib import Path
-from typing import List
+from typing import List, Type
 import glob
 import json
 
 from langchain.schema import Document
 from langchain.vectorstores.base import VectorStoreRetriever
-from langchain.document_loaders import PyPDFLoader, PDFMinerLoader, PyPDFium2Loader, PDFMinerPDFasHTMLLoader, PDFPlumberLoader
+from langchain.document_loaders.base import BaseLoader
+from langchain.document_loaders import (
+    PyPDFLoader,
+    PDFMinerLoader,
+    PyPDFium2Loader,
+    PDFMinerPDFasHTMLLoader,
+    PDFPlumberLoader,
+    UnstructuredHTMLLoader,
+    TextLoader,
+)
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -21,24 +31,44 @@ concurrency_limit = asyncio.Semaphore(5)
 
 # PDFLoader = PyPDFLoader
 # PDFLoader = PDFMinerLoader
-PDFLoader = PyPDFium2Loader
+# PDFLoader = PyPDFium2Loader
 # PDFLoader = PDFMinerPDFasHTMLLoader
 # PDFLoader = PDFPlumberLoader
 
 
+def get_loader_type(path: str) -> Type[BaseLoader]:
+    match Path(path).suffix:
+        case '.pdf':
+            # return PyPDFLoader
+            # return PDFMinerLoader
+            return PyPDFium2Loader
+            # return PDFMinerPDFasHTMLLoader
+            # return PDFPlumberLoader
+        case '.html':
+            return UnstructuredHTMLLoader
+        case _:
+            return TextLoader
+
+
 async def create_loader(path: str) -> List[Document]:
     # Async interface not available yet unfortunately...
-    print(f"Loading {path}...")
-    return PDFLoader(path).load_and_split(
-        text_splitter=CharacterTextSplitter(
-            chunk_size=4000,
-            chunk_overlap=0
+    print(f"Loading '{path}'...")
+    LoaderClass = get_loader_type(path)
+    if LoaderClass is not None:
+        return LoaderClass(path).load_and_split(
+            text_splitter=CharacterTextSplitter(
+                chunk_size=4000,
+                chunk_overlap=0
+            )
         )
-    )
+    else:
+        print(f"COULD NOT LOAD DATA: {path}")
+        breakpoint()
+        exit()
 
 
 async def create_documents(root_path: str) -> List[Document]:
-    tasks = [create_loader(path) for path in glob.glob(f"{root_path}/**/*.pdf", recursive=True)]
+    tasks = [create_loader(path) for path in glob.glob(f"{root_path}/**/*.*", recursive=True)]
     loaders = await asyncio.gather(*tasks)
     return [document for loader in loaders for document in loader]
 
@@ -98,6 +128,7 @@ async def main():
     llm = OpenAI(
         openai_api_key=config.OPENAI_API_KEY,
         temperature=0.0,
+        model='gpt-4',
     )
 
     print('Running queries...')
@@ -105,20 +136,22 @@ async def main():
         llm,
         retriever,
         [
-            'Who authored the Revolution Performance Release notes?',
-            "Explain 'Aggregate Cash per Currency' setting in Revolution Performance." ,
-            'Can Revolution Performance calculate returns from NAVs or GAVs?',
-            'Can Revolution Performance calculate time-weighted and money-weighted returns from total asset values and transactions?',
-            'Explain Price and Trading Returns in Revolution Performance.',
-            'What returns can Revolution Performance calculate?',
-            'Can Revolution Performance calculate Turnover Ratios?',
-            "Explain what the 'Closed Day Method' is and what it does in Revolution Performance",
-            "What are Abnormal Returns and why are they useful in Revolution Performance?",
-            "What does the setting 'Chained Results Calendar' in Revolution Performance do?",
-            "Where can I configure my portfolio's calculation periods in Revolution Performance?",
-            "Explain how automated exports of chained results are configured and run in Revolution Performance?",
-            "What are 'Chained Returns'? Explain how they are calculated in Revolution Performance.",
-            "How does Revolution Performance calculate derivatives like Futures and Options?",
+            # 'Who authored the Revolution Performance Release notes?',
+            # "Explain 'Aggregate Cash per Currency' setting in Revolution Performance." ,
+            # 'Can Revolution Performance calculate returns from NAVs or GAVs?',
+            # 'Can Revolution Performance calculate time-weighted and money-weighted returns from total asset values and transactions?',
+            # 'Explain Price and Trading Returns in Revolution Performance.',
+            # 'What returns can Revolution Performance calculate?',
+            # 'Can Revolution Performance calculate Turnover Ratios?',
+            # "Explain what the 'Closed Day Method' is and what it does in Revolution Performance",
+            # "What are Abnormal Returns and why are they useful in Revolution Performance?",
+            # "What does the setting 'Chained Results Calendar' in Revolution Performance do?",
+            # "Where can I configure my portfolio's calculation periods in Revolution Performance?",
+            # "Explain how automated exports of chained results are configured and run in Revolution Performance?",
+            # "What are 'Chained Returns'? Explain how they are calculated in Revolution Performance.",
+            # "How does Revolution Performance calculate derivatives like Futures and Options?",
+            'What fields are available in the Workflow Summary Export json? Include the release number in which the feature was last updated.',
+            "What does the 'Share Price Variance' control do in Revolution Performance?",
         ]
     )
 
