@@ -14,16 +14,6 @@ index = VectorstoreIndexCreator().from_loaders(
     [PDFMinerLoader(path) for path in glob.glob('data/rp_docs/**/*.pdf')]
 )
 
-# queries = [
-#     'Who authored the Revolution Performance Release notes?',
-#     'What are Abnormal Returns and how are they handled in Revolution Performance?',
-#     "What does the 'Closed Day Method' in Revolution Performance do?",
-#     "What does the setting 'Chained Results Calendar' in Revolution Performance do?",
-#     "Where can I configure my portfolio's calculation periods in Revolution Performance?",
-#     "Explain how automated exports of chained results are configured and run in Revolution Performance?",
-#     "What are 'Chained Returns'? Explain how they are calculated in Revolution Performance.",
-# ]
-
 queries = [
     # 'Who authored the Revolution Performance Release notes?',
     # "Explain 'Aggregate Cash per Currency' setting in Revolution Performance." ,
@@ -39,7 +29,8 @@ queries = [
     # "Explain how automated exports of chained results are configured and run in Revolution Performance?",
     # "What are 'Chained Returns'? Explain how they are calculated in Revolution Performance.",
     # "How does Revolution Performance calculate derivatives like Futures and Options?",
-    'How do I configure the "Workflow Notifications" file that goes to FTP? Give me all the details about that.'
+    # 'How do I configure the "Workflow Notifications" file that goes to FTP? Give me all the details about that.',
+    'How do I set up chained business returns and how do I export them to FTP?',
 ]
 
 llm = OpenAI(
@@ -54,12 +45,3 @@ for q in queries:
         'response': index.query(q, llm)
     }
     print(json.dumps(res))
-
-
-# print(index.query('Who authored the Revolution Performance Release notes?'))
-# print(index.query('What are Abnormal Returns and how are they handled in Revolution Performance?'))   # Not quite accurate
-# print(index.query("What does the 'Closed Day Method' in Revolution Performance do?"))
-# print(index.query("What does the setting 'Chained Results Calendar' in Revolution Performance do?"))
-# print(index.query("Where can I configure my portfolio's calculation periods in Revolution Performance?"))
-# print(index.query("Explain how automated exports of chained results are configured and run in Revolution Performance?"))
-# print(index.query("What are 'Chained Returns'? Explain how they are calculated in Revolution Performance."))
