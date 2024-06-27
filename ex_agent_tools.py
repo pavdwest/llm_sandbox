@@ -13,12 +13,10 @@ def get_my_name(*args, **kwargs) -> str:
 
 
 def weather_tool(*args, **kwargs) -> str:
-    print(args)
     return 'warm and sunny from 08:00 to 15:00, cold and rainy after 15:00'
 
 
 def owned_clothes_tool(*args, **kwargs) -> List[str]:
-    print(args)
     return [
         'jacket',
         'shorts',
@@ -30,15 +28,19 @@ def owned_clothes_tool(*args, **kwargs) -> List[str]:
         'flip-flops',
         'raincoat',
         'speedo',
+        'sneakers',
         'boots',
         'mankini',
         'tuxedo',
         'suit and tie',
-        'leotard'
+        'leotard',
+        'umbrella',
     ]
 
 def event_details(*args, **kwargs) -> str:
-    return 'The event starts tomorrow at 11am and ends at 2pm. It is an informal event.'
+    # return 'The event starts tomorrow at 11am and ends at 2pm. It is an informal event.'
+    # return 'The event starts tomorrow at 5pm and ends at 7pm. It is an informal event.'
+    return 'The event is from 16:00 to 19:00 tomorrow. It is a formal event.'
 
 
 # Load the language model
@@ -57,7 +59,7 @@ weather_tool_ = Tool(
 owned_clothes_tool_ = Tool(
     name='clothes',
     func=owned_clothes_tool,
-    description="Lists all the clothes at my disposal."
+    description="Lists all the clothes and accessories that I own"
 )
 
 event_details_tool_ = Tool(
@@ -80,7 +82,8 @@ agent = initialize_agent(
 )
 
 # agent.run("Using the tools at your disposal, pick the most appropriate clothes for me to wear tomorrow between 10 and 11am.")
-# agent.run("Using the tools at your disposal, pick the most appropriate clothes for me to wear tomorrow evening.")
+# agent.run("Recommend the most appropriate clothes for me to wear tomorrow evening.")
 # agent.run("Using the tools at your disposal, pick the most appropriate clothes for me to wear tomorrow between 11am and 8pm. I can only take one set of clothes.")
+agent.run("Using as many of the available tools at your disposal, recommend the most appropriate clothes for me to wear to tomorrow's event.")
+# agent.run("Should I take an umbrella to tomorrow's event?")
 
-agent.run("Recommend the most appropriate clothes for me to wear to tomorrow's event.")

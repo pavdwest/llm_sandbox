@@ -5,3 +5,5 @@ data
 .chroma
 db/*
 !db/.dirkeep
+.venv
+__pycache__

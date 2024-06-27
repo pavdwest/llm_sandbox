@@ -8,7 +8,7 @@ import json
 from langchain.schema import Document
 from langchain.vectorstores.base import VectorStoreRetriever
 from langchain.document_loaders.base import BaseLoader
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     PyPDFLoader,
     PDFMinerLoader,
     PyPDFium2Loader,
@@ -18,10 +18,10 @@ from langchain.document_loaders import (
     TextLoader,
 )
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
+from langchain_openai import OpenAI
 
 import config
 
@@ -81,12 +81,13 @@ async def run_query(llm: OpenAI, retriever: VectorStoreRetriever, query: str) ->
             retriever=retriever
         )
         prompt_pre = '''You are a digital assistant explaining the features of Revolution Performance, analytics software for institutional portfolios.
-            Explain features at a high level but keep your answer concise, to the point and general and always include the version number. Never include any specific client names.
-            Answer the following question submitted by a user: '''
+            You have been provided with relevant extracts from the software's release notes and documentation. Use that information to answer the question posed by a user at the end.
+            Explain features in detail, state in which version a feature was introduced and include hyperlinks to the source documents. Never include any specific client names and if you can't find a satisfactory answer then say so. Do not guess or make up answers.
+            The question from the user is: '''
         print(f"Running query '{query}'...")
         return {
             'query': query,
-            'response': await qa.arun(f"{prompt_pre} {query}")
+            'response': await qa.ainvoke(f"{prompt_pre} {query}")
         }
 
 
@@ -144,7 +145,8 @@ async def main():
             # 'Can Revolution Performance calculate time-weighted and money-weighted returns from total asset values and transactions?',
             # 'Explain Price and Trading Returns in Revolution Performance.',
             # 'What returns can Revolution Performance calculate?',
-            # 'Can Revolution Performance calculate Turnover Ratios?',
+            'Can Revolution Performance calculate Turnover Ratios?',
+            # 'How is the Turnover Ratio calculated in Revolution Performance?',
             # "Explain what the 'Closed Day Method' is and what it does in Revolution Performance",
             # "What are Abnormal Returns and why are they useful in Revolution Performance?",
             # "What does the setting 'Chained Results Calendar' in Revolution Performance do?",
@@ -159,7 +161,7 @@ async def main():
             # "In which release notes is 'Chained Results Calendar' mentioned?",
             # "In which release notes is 'Export Batch' mentioned?",
             # "What feature produces a single file per workflow group for an export configuration",
-            "Is there a feature to help with too many files being exported to FTP each day?",
+            # "Is there a feature to help with too many files being exported to FTP each day?",
         ]
     )
 
